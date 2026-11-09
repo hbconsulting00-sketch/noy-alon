@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#FDEFF4">
+<title>נוי ואלון 💍 שחקן</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body { min-height: 100vh; min-height: 100dvh; }
+  #app { position: relative; z-index: 2; max-width: 520px; margin: 0 auto; padding: 22px 16px 40px; }
+  .screen { display: none; width: 100%; }
+  .screen.active { display: flex; flex-direction: column; align-items: stretch; gap: 16px; animation: fadein .35s ease-out; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .title { text-align: center; }
+  .rings { font-size: 46px; animation: floaty 4s ease-in-out infinite; }
+  .title h1 { font-size: 46px; font-weight: 700; line-height: 1.1; }
+  .title p { color: var(--ink-soft); font-size: 18px; margin-top: 4px; }
+
+  .join-card { padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .join-card label { font-weight: 600; font-size: 17px; font-family: 'Fredoka', sans-serif; }
+  .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .emoji-btn { font-size: 30px; aspect-ratio: 1; border-radius: 16px; border: 3px solid transparent; background: #fff; cursor: pointer; box-shadow: 0 2px 8px rgba(75,58,85,.08); transition: transform .12s; }
+  .emoji-btn.sel { border-color: var(--pink); background: var(--pink-l); transform: scale(1.08); }
+  #name { font-family: inherit; font-size: 20px; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--sky-l); background: #fff; color: var(--ink); outline: none; }
+  #name:focus { border-color: var(--sky); box-shadow: 0 0 0 4px rgba(109,184,227,.2); }
+  .err { color: var(--err); text-align: center; min-height: 20px; }
+  .join-card .btn { width: 100%; }
+
+  /* wait */
+  .loader { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+  .loader span { font-size: 30px; color: var(--pink); animation: hop 1.2s ease-in-out infinite; }
+  .loader span:nth-child(2) { color: var(--sky); animation-delay: .15s; }
+  .loader span:nth-child(3) { color: var(--lilac); animation-delay: .3s; }
+  @keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+  .me { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  #w-emoji { font-size: 64px; }
+  #w-name { font-family: 'Fredoka', sans-serif; font-size: 28px; font-weight: 600; }
+  .wait-msg { text-align: center; font-size: 19px; line-height: 1.6; padding: 16px; }
+  .tips { padding: 16px 20px; }
+  .tips h4 { font-size: 18px; margin-bottom: 6px; }
+  .tips ul { list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 16px; }
+  .score-pill { align-self: center; background: #fff; border-radius: 999px; padding: 10px 24px; font-size: 18px; box-shadow: var(--shadow); }
+  .score-pill b { font-family: 'Fredoka', sans-serif; color: var(--pink-d); font-size: 24px; }
+
+  /* question */
+  .pq-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .pq-top .badge { font-size: 15px; padding: 6px 12px; }
+  .timer { width: 58px; height: 58px; border-radius: 50%; background: #fff; border: 4px solid var(--sky); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: var(--sky-d); flex: none; }
+  .timer.low { border-color: var(--err); color: var(--err); animation: pulse .6s infinite; }
+  #pq-text { font-size: 23px; line-height: 1.4; text-align: center; padding: 18px 16px; font-weight: 600; }
+  .p-opts { display: flex; flex-direction: column; gap: 11px; }
+  .p-opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: right; padding: 15px 16px; min-height: 66px; border-radius: 18px; border: 3px solid var(--a); background: var(--al); color: var(--ink); font-family: inherit; font-size: 20px; font-weight: 600; cursor: pointer; transition: transform .12s, opacity .2s; }
+  .p-opt:active { transform: scale(.97); }
+  .p-opt .shape { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--a); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .p-opt.sel { background: var(--a); color: #fff; transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+  .p-opt.sel .shape { background: #fff; color: var(--ad); }
+  .p-opt:disabled:not(.sel) { opacity: .4; }
+  .pq-status { text-align: center; font-size: 18px; line-height: 1.5; min-height: 28px; }
+
+  /* popup */
+  .popup { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(253, 239, 244, .78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadein .3s; }
+  .popup-card { width: 100%; max-width: 440px; padding: 28px 22px; text-align: center; display: flex; flex-direction: column; gap: 12px; border-width: 4px; }
+  .popup.ok .popup-card { border-color: var(--ok); }
+  .popup.bad .popup-card { border-color: var(--err); }
+  #pp-icon { font-size: 72px; animation: pop .45s ease-out; }
+  @keyframes pop { from { transform: scale(.3); } to { transform: scale(1); } }
+  #pp-title { font-size: 32px; }
+  .popup.ok #pp-title { color: var(--ok); }
+  .popup.bad #pp-title { color: var(--err); }
+  #pp-correct { font-size: 20px; font-weight: 600; background: #D9F5E8; border-radius: 14px; padding: 10px; }
+  #pp-expl { font-size: 18px; line-height: 1.5; color: var(--ink-soft); }
+  .pp-score { font-size: 18px; }
+  .pp-score b { font-family: 'Fredoka', sans-serif; color: var(--pink-d); font-size: 24px; }
+  .pp-wait { font-size: 15px; color: var(--ink-soft); }
+  .pp-wait::before { content: '⏳ '; }
+
+  /* end */
+  .end-big { font-size: 72px; text-align: center; }
+  .end-card { padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+  .end-card h2 { font-size: 30px; }
+  .end-score { font-family: 'Fredoka', sans-serif; font-size: 56px; font-weight: 700; color: var(--pink-d); }
+  .end-rank { font-size: 22px; }
+  .end-thanks { font-size: 19px; color: var(--ink-soft); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="bg-deco"></div>
+
+<main id="app">
+  <div id="config-warn" class="card config-warn hidden">
+    <h2>⚙️ המשחק עוד לא מוכן</h2>
+    <p>חסרות הגדרות Firebase בקובץ <code>config.js</code>.</p>
+  </div>
+
+  <div id="no-session" class="card config-warn hidden">
+    <h2>📱 סרקו את הקוד</h2>
+    <p>כדי להצטרף, סרקו את קוד ה-QR שמופיע על המסך הגדול.</p>
+  </div>
+
+  <!-- JOIN -->
+  <section id="join-screen" class="screen">
+    <div class="title">
+      <div class="rings">💍</div>
+      <h1 class="couple">נוי <span class="heart">♥</span> אלון</h1>
+      <p>כמה טוב אתם מכירים את הזוג?</p>
+    </div>
+    <div class="card join-card">
+      <label>בחרו אייקון</label>
+      <div class="emoji-grid" id="emoji-grid">
+        <button class="emoji-btn sel" data-em="💍">💍</button>
+        <button class="emoji-btn" data-em="🤍">🤍</button>
+        <button class="emoji-btn" data-em="🥂">🥂</button>
+        <button class="emoji-btn" data-em="💐">💐</button>
+        <button class="emoji-btn" data-em="🕊️">🕊️</button>
+        <button class="emoji-btn" data-em="🎉">🎉</button>
+        <button class="emoji-btn" data-em="😍">😍</button>
+        <button class="emoji-btn" data-em="🌸">🌸</button>
+        <button class="emoji-btn" data-em="💃">💃</button>
+        <button class="emoji-btn" data-em="🕺">🕺</button>
+      </div>
+      <label for="name">איך קוראים לך?</label>
+      <input id="name" maxlength="16" placeholder="השם שלך" autocomplete="off" enterkeyhint="go">
+      <button class="btn big" id="join-btn" onclick="window.joinGame()">הצטרפות למשחק 🥂</button>
+      <p id="join-err" class="err"></p>
+    </div>
+  </section>
+
+  <!-- WAIT -->
+  <section id="wait-screen" class="screen">
+    <div class="loader"><span>♥</span><span>♥</span><span>♥</span></div>
+    <div class="me"><span id="w-emoji"></span><span id="w-name"></span></div>
+    <p class="card wait-msg" id="wait-msg"></p>
+    <div class="card tips">
+      <h4>💡 טיפים</h4>
+      <ul>
+        <li>📱 השאירו את המסך דולק</li>
+        <li>⚡ ענו מהר, כל שנייה חשובה</li>
+        <li>🎁 תשובה נכונה ומהירה = בונוס נקודות</li>
+      </ul>
+    </div>
+    <div class="score-pill">הניקוד שלי: <b id="w-score">0</b></div>
+  </section>
+
+  <!-- QUESTION -->
+  <section id="q-screen" class="screen">
+    <div class="pq-top">
+      <span id="pq-cat" class="badge"></span>
+      <span id="pq-pts" class="badge pts"></span>
+      <span id="pq-timer" class="timer">30</span>
+    </div>
+    <h2 id="pq-text" class="card"></h2>
+    <div id="pq-opts" class="p-opts"></div>
+    <div id="pq-status" class="pq-status"></div>
+  </section>
+
+  <!-- END -->
+  <section id="end-screen" class="screen">
+    <div class="end-big">🎉</div>
+    <div class="card end-card">
+      <h2>המשחק הסתיים!</h2>
+      <div><span id="e-emoji"></span> <span id="e-name"></span></div>
+      <div class="end-score" id="e-score">0</div>
+      <div class="end-rank" id="e-rank"></div>
+      <p class="end-thanks">תודה ששיחקתם! 🤍<br>מזל טוב לנוי ואלון 💙</p>
+    </div>
+  </section>
+</main>
+
+<div id="popup" class="popup hidden">
+  <div class="card popup-card">
+    <div id="pp-icon"></div>
+    <h2 id="pp-title"></h2>
+    <p id="pp-correct"></p>
+    <p id="pp-expl"></p>
+    <p class="pp-score">הניקוד שלי: <b id="pp-score">0</b></p>
+    <p class="pp-wait">ממתינים לשאלה הבאה...</p>
+  </div>
+</div>
+
+<script src="deco.js"></script>
+<script type="module">
+import { firebaseConfig, isConfigured, ROOT } from './config.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, onValue, onDisconnect, get }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const SHAPES = ['♥', '★', '◆', '●'];
+const SESSION = new URLSearchParams(location.search).get('s');
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const STORE_KEY = 'noyalon_' + SESSION;
+
+let db;
+let myId = null, me = null, myScore = 0, joined = false;
+let gameState = null, curQ = null, correctVal = null;
+let shownQId = null, revealedQId = null;
+let answered = false, myAnswer = null, t0 = 0, timerInt = null;
+let popupOpen = false, scoreListening = false;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  window.scrollTo(0, 0);
+}
+function saveMe() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ id: myId, ...me })); } catch (e) {} }
+function loadMe() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { return null; } }
+
+// ---------- join ----------
+$('emoji-grid').addEventListener('click', e => {
+  const b = e.target.closest('.emoji-btn');
+  if (!b) return;
+  document.querySelectorAll('.emoji-btn').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel');
+});
+$('name').addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
+
+async function joinGame() {
+  const name = $('name').value.trim();
+  if (!name) { $('join-err').textContent = 'נא להקליד שם 🙂'; return; }
+  const sel = document.querySelector('.emoji-btn.sel');
+  me = { name: name.slice(0, 16), emoji: sel ? sel.dataset.em : '💍' };
+  myId = myId || ('p_' + Math.random().toString(36).slice(2, 10));
+  $('join-btn').disabled = true;
+  saveMe();
+  await enterGame();
+}
+
+async function enterGame() {
+  try {
+    const s = await get(ref(db, `${ROOT}/${SESSION}/players/${myId}/score`));
+    if (typeof s.val() === 'number') myScore = s.val();
+  } catch (e) {}
+  joined = true;
+  await registerPresence();
+  if (!scoreListening) {
+    scoreListening = true;
+    onValue(ref(db, `${ROOT}/${SESSION}/players/${myId}/score`), snap => {
+      const v = snap.val();
+      if (typeof v === 'number') { myScore = v; renderScore(); }
+    });
+  }
+  $('w-emoji').textContent = me.emoji;
+  $('w-name').textContent = me.name;
+  renderScore();
+  applyState();
+}
+
+function registerPresence() {
+  const pRef = ref(db, `${ROOT}/${SESSION}/players/${myId}`);
+  onDisconnect(pRef).remove();
+  return set(pRef, { name: me.name, emoji: me.emoji, score: myScore });
+}
+
+function renderScore() {
+  $('w-score').textContent = myScore;
+  $('pp-score').textContent = myScore;
+}
+
+// ---------- state ----------
+function applyState() {
+  if (!joined) return;
+  if (gameState === 'end') { showEnd(); return; }
+  if (curQ && gameState === 'question') {
+    if (shownQId !== curQ.qId) showQuestion(curQ);
+    return;
+  }
+  if (curQ && gameState === 'reveal' && shownQId === curQ.qId) return; // reveal handled by correct listener
+  if (popupOpen) return; // keep the answer popup until the next question
+  stopTimer();
+  const msgs = {
+    lobby: '⏳ ממתינים שהמשחק יתחיל...<br>על המסך תופיע שאלה ברגע שהמשחק מתחיל',
+    wheel: '🎡 בוחרים את השאלה הבאה...<br>תהיו מוכנים!',
+    scores: '📊 מציגים את טבלת הניקוד על המסך',
+    reveal: '👀 חושפים את התשובה על המסך...',
+  };
+  $('wait-msg').innerHTML = gameState === null
+    ? '🔄 המשחק הזה אופס.<br>סרקו את הקוד החדש מהמסך כדי להצטרף שוב.'
+    : (msgs[gameState] || msgs.lobby);
+  showScreen('wait-screen');
+}
+
+// ---------- question ----------
+function showQuestion(q) {
+  shownQId = q.qId;
+  answered = false;
+  myAnswer = null;
+  closePopup();
+  $('pq-cat').textContent = `${q.icon} ${q.cat}`;
+  $('pq-cat').style.background = q.color;
+  $('pq-pts').textContent = `${q.pts} נק'`;
+  $('pq-text').textContent = q.text;
+  $('pq-opts').innerHTML = q.opts.map((o, i) =>
+    `<button class="p-opt ans-${i}" onclick="window.answer(${i})"><span class="shape">${SHAPES[i]}</span><span>${esc(o)}</span></button>`
+  ).join('');
+  $('pq-status').textContent = '';
+  showScreen('q-screen');
+  t0 = Date.now();
+  startTimer(q.duration || 30);
+}
+
+function startTimer(sec) {
+  stopTimer();
+  let left = sec;
+  const draw = () => {
+    $('pq-timer').textContent = Math.max(0, left);
+    $('pq-timer').classList.toggle('low', left <= 5 && left > 0);
+  };
+  draw();
+  timerInt = setInterval(() => {
+    left--;
+    draw();
+    if (left <= 0) { stopTimer(); if (!answered) timeOut(); }
+  }, 1000);
+}
+function stopTimer() { if (timerInt) clearInterval(timerInt); timerInt = null; }
+
+function lockOptions(selIdx) {
+  document.querySelectorAll('.p-opt').forEach((b, i) => {
+    b.disabled = true;
+    if (i === selIdx) b.classList.add('sel');
+  });
+}
+
+function answer(i) {
+  if (answered || !curQ) return;
+  answered = true;
+  myAnswer = i;
+  lockOptions(i);
+  set(ref(db, `${ROOT}/${SESSION}/answers/${myId}`), { answer: i, elapsed: Date.now() - t0, qId: curQ.qId });
+  $('pq-status').innerHTML = '✅ <b>תשובתך נרשמה!</b><br>המתינו לחשיפת התשובה הנכונה';
+}
+
+function timeOut() {
+  answered = true;
+  lockOptions(-1);
+  $('pq-status').innerHTML = '⏰ <b>הזמן נגמר!</b>';
+}
+
+function doReveal(c) {
+  if (!curQ || revealedQId === curQ.qId) return;
+  revealedQId = curQ.qId;
+  stopTimer();
+  const ok = myAnswer === c;
+  const none = myAnswer === null;
+  $('pp-icon').textContent = ok ? '🎉' : (none ? '⏰' : '💔');
+  $('pp-title').textContent = ok ? 'צדקת!' : (none ? 'לא הספקת לענות' : 'לא הפעם...');
+  $('pp-correct').textContent = `התשובה הנכונה: ${curQ.opts[c]}`;
+  $('pp-expl').textContent = curQ.expl || '';
+  renderScore();
+  $('popup').classList.remove('ok', 'bad');
+  $('popup').classList.add(ok ? 'ok' : 'bad');
+  $('popup').classList.remove('hidden');
+  popupOpen = true;
+  if (ok && window.heartBurst) window.heartBurst(30);
+}
+
+function closePopup() {
+  popupOpen = false;
+  $('popup').classList.add('hidden');
+}
+
+// ---------- end ----------
+async function showEnd() {
+  stopTimer();
+  closePopup();
+  $('e-emoji').textContent = me.emoji;
+  $('e-name').textContent = me.name;
+  $('e-score').textContent = myScore;
+  showScreen('end-screen');
+  try {
+    const snap = await get(ref(db, `${ROOT}/${SESSION}/players`));
+    const list = Object.values(snap.val() || {}).filter(p => p && p.name).map(p => p.score || 0).sort((a, b) => b - a);
+    const rank = list.findIndex(s => s <= myScore) + 1;
+    if (rank > 0) $('e-rank').textContent = `מקום ${rank} מתוך ${list.length} ${rank === 1 ? '🏆' : ''}`;
+  } catch (e) {}
+  if (window.heartBurst) window.heartBurst(50);
+}
+
+window.joinGame = joinGame;
+window.answer = answer;
+
+// ---------- init ----------
+function init() {
+  if (!isConfigured()) { $('config-warn').classList.remove('hidden'); return; }
+  if (!SESSION) { $('no-session').classList.remove('hidden'); return; }
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+
+  onValue(ref(db, `${ROOT}/${SESSION}/gameState`), snap => {
+    gameState = snap.val();
+    applyState();
+  });
+  onValue(ref(db, `${ROOT}/${SESSION}/currentQ`), snap => {
+    const q = snap.val();
+    curQ = q || null;
+    if (!q) { if (!popupOpen) applyState(); return; }
+    applyState();
+  });
+  onValue(ref(db, `${ROOT}/${SESSION}/correct`), snap => {
+    const v = snap.val();
+    correctVal = (typeof v === 'number') ? v : null;
+    if (correctVal !== null && joined && curQ && shownQId === curQ.qId) doReveal(correctVal);
+  });
+  onValue(ref(db, '.info/connected'), snap => {
+    if (snap.val() === true && joined) registerPresence();
+  });
+
+  const saved = loadMe();
+  if (saved && saved.id && saved.name) {
+    myId = saved.id;
+    me = { name: saved.name, emoji: saved.emoji || '💍' };
+    enterGame();
+  } else {
+    showScreen('join-screen');
+    setTimeout(() => $('name').focus(), 300);
+  }
+}
+init();
+</script>
+</body>
+</html>
